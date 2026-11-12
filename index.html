@@ -153,7 +153,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;",
 
 function renderNav() {
   const nav = document.getElementById("nav");
-  nav.innerHTML = `<div class="pages"><a href="index.html" class="cur">Type inferencer</a><a href="lexer.html">Lexer</a></div>`;
+  nav.innerHTML = `<div class="pages"><a href="index.html" class="cur">Inference</a><a href="lexer.html">Lexer</a><a href="regex.html">Regex</a></div>`;
   QUESTIONS.forEach((q, k) => {
     const st = state[q.id];
     const b = document.createElement("button");
