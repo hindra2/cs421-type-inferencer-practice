@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CS 421 Regex Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14171c; --panel: #1b1f26; --ink: #e3e7ee; --muted: #8b95a7; --line: #2c323c;
+    --accent: #2f5fb3; --orange: #e8673f; --pass: #4cc38a; --pass-bg: #173226;
+    --fail: #f06a5f; --fail-bg: #35191a; --code-bg: #232831; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "IBM Plex Sans", system-ui, sans-serif; color: var(--ink); background: var(--bg); font-size: 15px; }
+  header { background: #0e1116; border-bottom: 1px solid var(--line); color: #fff; padding: 10px 20px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; }
+  header .total { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 14px; }
+  header .status { font-size: 13px; opacity: .85; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f5b041; margin-right: 6px; vertical-align: middle; }
+  .dot.ok { background: #58d68d; }
+  .wrap { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 44px); }
+  nav { background: var(--panel); border-right: 1px solid var(--line); padding: 12px 0; }
+  nav button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; padding: 9px 16px; text-align: left; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink); }
+  nav button:hover { background: var(--bg); }
+  nav button.active { background: #232a35; border-left: 3px solid var(--orange); padding-left: 13px; font-weight: 500; }
+  nav .num { color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 12px; width: 18px; }
+  nav .badge { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 2px 6px; border-radius: 10px; background: var(--code-bg); color: var(--muted); }
+  nav .badge.full { background: var(--pass-bg); color: var(--pass); }
+  nav .badge.part { background: #3a2c12; color: #f0b44c; }
+  nav .resetall { margin: 14px 16px 0; width: calc(100% - 32px); justify-content: center; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 13px; }
+  main { padding: 20px 28px 60px; max-width: 1100px; min-width: 0; }
+  .wrap.collapsed { grid-template-columns: 1fr; }
+  .wrap.collapsed nav { display: none; }
+  .navtoggle { border: 1px solid var(--line); background: none; color: var(--ink); border-radius: 6px; padding: 3px 9px; font-size: 15px; cursor: pointer; }
+  .navtoggle:hover { border-color: #3d4552; }
+  .qhead { display: flex; align-items: baseline; gap: 12px; }
+  h2 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+  .ctor { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--muted); }
+  h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+  pre { font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.45; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; margin: 0; overflow-x: auto; }
+  pre.rule { background: var(--panel); }
+  .note { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); padding: 1px 4px; border-radius: 3px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; margin: 10px 0 6px; }
+  .editor { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #282c34; }
+  .editor .cm-editor { height: 440px; font-size: 13.5px; }
+  .editor .cm-scroller { font-family: "JetBrains Mono", monospace; }
+  .actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: 14px; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+  .btn.primary:hover { background: #3a6fcc; }
+  .btn:hover { border-color: #3d4552; }
+  .btn.primary:disabled { opacity: .5; cursor: default; }
+  .btn.danger { color: var(--fail); }
+  .hint { font-size: 12.5px; color: var(--muted); }
+  .score { margin-top: 18px; padding: 14px 16px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; gap: 16px; }
+  .score .big { font-size: 26px; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+  .bar { flex: 1; height: 8px; background: var(--code-bg); border-radius: 4px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--pass); transition: width .3s; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  td.m { font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+  tr.pass td.st { color: var(--pass); font-weight: 600; }
+  tr.fail { background: var(--fail-bg); }
+  tr.fail td.st { color: var(--fail); font-weight: 600; }
+  pre.out { background: #0f1115; color: #e6e6e6; max-height: 260px; overflow: auto; white-space: pre-wrap; }
+  pre.out.err { border-color: var(--fail); }
+  .scratch textarea { width: 100%; height: 90px; font-family: "JetBrains Mono", monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; background: var(--code-bg); color: var(--ink); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal.show { display: flex; }
+  .modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; max-width: 380px; }
+  .modal .box p { margin: 0 0 16px; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 16px; } }
+  .pages { display: flex; gap: 6px; margin: 0 12px 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .pages a { flex: 1; text-align: center; padding: 6px 4px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  .pages a:hover { color: var(--ink); }
+  .pages a.cur { color: var(--ink); background: #232a35; border-color: #3d4552; font-weight: 500; }
+  table.kw { width: auto; margin-top: 12px; }
+  table.kw td { padding: 4px 12px; }
+  .editor.short .cm-editor { height: auto; min-height: 44px; }
+  .editor.mid .cm-editor { height: 240px; }
+  .prompt { line-height: 1.55; margin-bottom: 10px; }
+  .prompt pre.ex { background: none; border: 0; padding: 4px 0 0; }
+  .math { font-family: "Times New Roman", serif; font-size: 16px; }
+  .navlabel { margin: 12px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
+  details.instr { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0 14px; margin-top: 12px; }
+  details.instr[open] { padding-bottom: 10px; }
+  details.instr p { line-height: 1.55; font-size: 14px; }
+  .verdict { padding: 8px 12px; border-radius: 6px; font-weight: 500; }
+  .verdict.pass { background: var(--pass-bg); color: var(--pass); }
+  .verdict.fail { background: var(--fail-bg); color: var(--fail); }
+  .tryin { flex: 1; min-width: 160px; font-family: "JetBrains Mono", monospace; font-size: 13px; background: var(--code-bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <button class="navtoggle" id="navToggle" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+  <h1>CS 421 · Regex Practice <span style="opacity:.6;font-weight:400">regular expressions &amp; right regular grammars</span></h1>
+  <span class="total" id="total"></span>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div class="modal" id="modal"><div class="box"><p id="modalText"></p>
+  <div class="actions"><button class="btn danger" id="modalYes">Reset</button><button class="btn" id="modalNo">Cancel</button></div></div></div>
+
+<script src="cm.js"></script>
+<script src="regex-grader.js"></script>
+<script src="regex-questions.js"></script>
+<script>
+const QUESTIONS = RX_QUESTIONS;
+const INSTRUCTIONS = `<p>In the following, you will be given a description of a regular language over a given alphabet and you will be asked to give first a regular expression and then a right regular grammar generating that language. The alphabet of the language is given as a part of the problem statement. When writing a regular expression, in addition to the alphabet given, you may use the symbols <code>(</code>, <code>)</code>, <code>E</code>, <code>V</code>, <code>*</code>, <code>+</code> for, respectively, grouping, epsilon, or, Kleene star, and Kleene plus. Other symbols will either cause a parse error or will not be interpreted as you intend.</p>
+<p>When writing right regular grammars, terminals will always be single non-uppercase letters, digits, or symbols. Nonterminals are identifiers starting with an upper case letter. The separator for rules between the left-hand nonterminal and the right-hand string is <code>::=</code>. The empty string may be represented by <code>epsilon</code>. You may use the extended CFG construct <code>|</code> to compactify rule representation. You may use, or not use, white space (space, tab, newline) freely; they will not alter the meaning of your rules, except when you run a nonterminal into a terminal or other nonterminal, creating a nonterminal of a longer name. You must either begin or end your grammar with a declaration of its start symbol with <code>Start Symbol = nonterminal</code>.</p>
+<p>In class we had as an example the set of all strings of 0's and 1's of even length such that every prefix of even length had the same number of 0's as 1's. This language is generated by the right regular grammar:</p>
+<pre>B ::= epsilon | 0 N | 1 Z
+N ::= 1 B
+Z ::= 0 B
+Start Symbol = B</pre>
+<p>The grader works by checking your regular expressions and right regular grammars for equivalence against solutions. In the case that they are not equivalent, the grader will give feedback, stating when the submitted regular expression / right regular grammar have been improperly constructed, or how the languages they produce differ from the solution: giving examples of strings that should be recognized that are not and vice versa.</p>`;
+
+// ---------- storage (best-effort) ----------
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem("rx:" + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("rx:" + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem("rx:" + k); } catch (e) {} },
+};
+const fresh = () => ({ regex: "", grammar: "", results: null, score: null });
+const state = {};
+for (const q of QUESTIONS) state[q.id] = store.get("q:" + q.id) || fresh();
+let current = (location.hash && QUESTIONS.find(q => "#" + q.id === location.hash)) ? location.hash.slice(1) : QUESTIONS[0].id;
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const showStr = s => s === "" ? "ε (empty string)" : s;
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.innerHTML = `<div class="pages"><a href="index.html">Inference</a><a href="lexer.html">Lexer</a><a href="regex.html" class="cur">Regex</a></div>`;
+  let lastSource = null;
+  QUESTIONS.forEach((q, k) => {
+    if (q.source !== lastSource) {
+      lastSource = q.source;
+      nav.insertAdjacentHTML("beforeend", `<div class="navlabel">${q.source === "Instructor" ? "From the instructor" : "More variants"}</div>`);
+    }
+    const st = state[q.id];
+    const b = document.createElement("button");
+    if (q.id === current) b.className = "active";
+    const badge = st.score
+      ? `<span class="badge ${st.score.pass === st.score.total ? "full" : "part"}">${st.score.pass}/${st.score.total}</span>`
+      : `<span class="badge">–</span>`;
+    b.innerHTML = `<span class="num">${k + 1}</span><span>${esc(q.title)}</span>${badge}`;
+    b.onclick = () => { saveEditors(); current = q.id; try { history.replaceState(null, "", "#" + q.id); } catch (e) {} renderNav(); renderMain(); };
+    nav.appendChild(b);
+  });
+  const ra = document.createElement("button");
+  ra.className = "resetall"; ra.textContent = "Reset all questions";
+  ra.onclick = () => confirmBox("Clear every answer and score?", () => {
+    for (const q of QUESTIONS) { state[q.id] = fresh(); store.del("q:" + q.id); }
+    renderNav(); renderMain();
+  });
+  nav.appendChild(ra);
+  const done = QUESTIONS.filter(q => state[q.id].score && state[q.id].score.pass === state[q.id].score.total).length;
+  document.getElementById("total").textContent = `${done}/${QUESTIONS.length} questions fully correct`;
+}
+
+let views = null;
+function saveEditors() {
+  if (!views) return;
+  const st = state[current];
+  st.regex = views.regex.state.doc.toString();
+  st.grammar = views.grammar.state.doc.toString();
+  store.set("q:" + current, st);
+}
+
+function editor(parent, doc) {
+  const C = window.CM;
+  return new C.EditorView({
+    parent,
+    state: C.EditorState.create({
+      doc,
+      extensions: [
+        C.basicSetup, C.oneDark,
+        C.Prec.highest(C.keymap.of([{ key: "Mod-Enter", run: () => { grade(); return true; } }])),
+        C.EditorView.updateListener.of(u => { if (u.docChanged) { clearTimeout(window.__sv); window.__sv = setTimeout(saveEditors, 400); } }),
+      ],
+    }),
+  });
+}
+
+function renderMain() {
+  const q = QUESTIONS.find(x => x.id === current);
+  const st = state[q.id];
+  const main = document.getElementById("main");
+  main.innerHTML = `
+    <div class="qhead"><h2>${esc(q.title)}</h2><span class="ctor">${q.source === "Instructor" ? "from the instructor" : "practice variant"}</span></div>
+    <details class="instr"><summary>Instructions: how to write regular expressions and grammars</summary>${INSTRUCTIONS}</details>
+    <h3>Problem</h3>
+    <div class="prompt">${q.prompt}</div>
+    <div class="prompt">${q.examples}</div>
+    <p class="note">Alphabet: ${q.alphabet.map(c => `<code>${esc(c)}</code>`).join(" ")} · regex symbols: <code>( ) E V * +</code></p>
+    <h3>Regular expression</h3>
+    <div class="editor short" id="edRegex"></div>
+    <h3>Right regular grammar</h3>
+    <div class="editor mid" id="edGrammar"></div>
+    <div class="actions">
+      <button class="btn primary" id="grade">Save &amp; Grade</button>
+      <button class="btn danger" id="reset">Reset question</button>
+      <button class="btn" id="showSol">Show solution</button>
+      <span class="hint">Ctrl/Cmd-Enter to grade</span>
+    </div>
+    <div id="sol" style="display:none;margin-top:12px">
+      <h3>Solution</h3>
+      <pre>${esc(q.regex)}</pre>
+      <pre style="margin-top:8px">${esc(q.grammar)}</pre>
+      ${q.source === "Instructor" ? `<p class="note">These are answers that got 100% on PrairieLearn; any equivalent answer is also correct.</p>` : `<p class="note">Any equivalent answer is also correct.</p>`}
+    </div>
+    <div id="results"></div>
+    <details class="scratch"><summary>Try a string: is it in the language, your regex, your grammar?</summary>
+      <div class="actions"><input id="tryStr" class="tryin" spellcheck="false" placeholder="e.g. ${esc(q.accept[0])}"><button class="btn" id="tryBtn">Check</button></div>
+      <div id="tryOut"></div>
+    </details>`;
+
+  views = {
+    regex: editor(document.getElementById("edRegex"), st.regex),
+    grammar: editor(document.getElementById("edGrammar"), st.grammar),
+  };
+  document.getElementById("grade").onclick = grade;
+  document.getElementById("reset").onclick = () => confirmBox(`Clear your answers for “${q.title}”?`, () => {
+    state[q.id] = fresh(); store.del("q:" + q.id); renderNav(); renderMain();
+  });
+  document.getElementById("showSol").onclick = (e) => {
+    const s = document.getElementById("sol"), show = s.style.display === "none";
+    s.style.display = show ? "block" : "none";
+    e.target.textContent = show ? "Hide solution" : "Show solution";
+  };
+  const tryIt = () => {
+    saveEditors();
+    const s = document.getElementById("tryStr").value.replace(/\s+/g, "");
+    const bad = [...s].filter(c => !q.alphabet.includes(c));
+    const out = document.getElementById("tryOut");
+    if (bad.length) { out.innerHTML = `<p class="note">'${esc(bad[0])}' is not in the alphabet.</p>`; return; }
+    const ref = RX.build("regex", q.regex, q.alphabet);
+    const cell = (kind, src) => {
+      if (!src.trim()) return `<td class="m">(empty)</td>`;
+      const b = RX.build(kind, src, q.alphabet);
+      return b.ok ? `<td class="m">${RX.accepts(b.dfa, s) ? "accepts" : "rejects"}</td>` : `<td class="m">does not parse</td>`;
+    };
+    const inL = RX.accepts(ref.dfa, s);
+    out.innerHTML = `<table><tr><th>String</th><th>In the language?</th><th>Your regex</th><th>Your grammar</th></tr>
+      <tr><td class="m">${esc(showStr(s))}</td><td class="m">${inL ? "yes" : "no"}</td>${cell("regex", state[q.id].regex)}${cell("grammar", state[q.id].grammar)}</tr></table>`;
+  };
+  document.getElementById("tryBtn").onclick = tryIt;
+  document.getElementById("tryStr").onkeydown = e => { if (e.key === "Enter") tryIt(); };
+  renderResults();
+}
+
+function renderResults() {
+  const r = state[current].results, box = document.getElementById("results");
+  if (!r) { box.innerHTML = ""; return; }
+  const pct = Math.round(100 * r.score.pass / r.score.total);
+  let html = `<div class="score"><span class="big">${r.score.pass}/${r.score.total}</span>
+    <div class="bar"><div style="width:${pct}%"></div></div><span>${pct}%</span></div>`;
+  for (const part of r.parts) {
+    html += `<h3>${part.name}</h3>`;
+    if (part.error) html += `<pre class="out err">Improperly constructed: ${esc(part.error)}</pre>`;
+    else if (part.equal) html += `<div class="verdict pass">✓ Equivalent to the solution.</div>`;
+    else {
+      html += `<div class="verdict fail">✗ Not equivalent to the solution.</div><table><tr><th>Strings that should be recognized but are not</th><th>Strings that are recognized but should not be</th></tr><tr>
+        <td class="m">${part.missing.map(s => esc(showStr(s))).join("<br>") || "–"}</td>
+        <td class="m">${part.extra.map(s => esc(showStr(s))).join("<br>") || "–"}</td></tr></table>`;
+    }
+  }
+  box.innerHTML = html;
+}
+
+function grade() {
+  saveEditors();
+  const q = QUESTIONS.find(x => x.id === current), st = state[q.id];
+  const ref = RX.build("regex", q.regex, q.alphabet).dfa;
+  const parts = [["Regular expression", "regex", st.regex], ["Right regular grammar", "grammar", st.grammar]].map(([name, kind, src]) => {
+    if (!src.trim()) return { name, error: "no answer given" };
+    const b = RX.build(kind, src, q.alphabet);
+    if (!b.ok) return { name, error: b.error };
+    return { name, ...RX.compare(ref, b.dfa, q.alphabet) };
+  });
+  const score = { pass: parts.filter(p => p.equal).length, total: 2 };
+  st.results = { parts, score }; st.score = score;
+  store.set("q:" + q.id, st);
+  renderResults(); renderNav();
+}
+
+let modalYes = null;
+function confirmBox(text, onYes) {
+  document.getElementById("modalText").textContent = text;
+  modalYes = onYes;
+  document.getElementById("modal").classList.add("show");
+}
+document.getElementById("modalYes").onclick = () => { document.getElementById("modal").classList.remove("show"); if (modalYes) modalYes(); };
+document.getElementById("modalNo").onclick = () => document.getElementById("modal").classList.remove("show");
+
+const wrapEl = document.querySelector(".wrap");
+wrapEl.classList.toggle("collapsed", !!store.get("navCollapsed"));
+document.getElementById("navToggle").onclick = () => store.set("navCollapsed", wrapEl.classList.toggle("collapsed"));
+
+renderNav();
+renderMain();
+</script>
+</body>
+</html>
