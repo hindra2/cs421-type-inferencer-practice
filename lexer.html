@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CS 421 Lexer Practice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #14171c; --panel: #1b1f26; --ink: #e3e7ee; --muted: #8b95a7; --line: #2c323c;
+    --accent: #2f5fb3; --orange: #e8673f; --pass: #4cc38a; --pass-bg: #173226;
+    --fail: #f06a5f; --fail-bg: #35191a; --code-bg: #232831; color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: "IBM Plex Sans", system-ui, sans-serif; color: var(--ink); background: var(--bg); font-size: 15px; }
+  header { background: #0e1116; border-bottom: 1px solid var(--line); color: #fff; padding: 10px 20px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: .2px; }
+  header .total { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 14px; }
+  header .status { font-size: 13px; opacity: .85; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #f5b041; margin-right: 6px; vertical-align: middle; }
+  .dot.ok { background: #58d68d; }
+  .wrap { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 44px); }
+  nav { background: var(--panel); border-right: 1px solid var(--line); padding: 12px 0; }
+  nav button { display: flex; width: 100%; align-items: center; gap: 8px; border: 0; background: none; padding: 9px 16px; text-align: left; font: inherit; font-size: 14px; cursor: pointer; color: var(--ink); }
+  nav button:hover { background: var(--bg); }
+  nav button.active { background: #232a35; border-left: 3px solid var(--orange); padding-left: 13px; font-weight: 500; }
+  nav .num { color: var(--muted); font-family: "JetBrains Mono", monospace; font-size: 12px; width: 18px; }
+  nav .badge { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 11px; padding: 2px 6px; border-radius: 10px; background: var(--code-bg); color: var(--muted); }
+  nav .badge.full { background: var(--pass-bg); color: var(--pass); }
+  nav .badge.part { background: #3a2c12; color: #f0b44c; }
+  nav .resetall { margin: 14px 16px 0; width: calc(100% - 32px); justify-content: center; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 13px; }
+  main { padding: 20px 28px 60px; max-width: 1100px; min-width: 0; }
+  .wrap.collapsed { grid-template-columns: 1fr; }
+  .wrap.collapsed nav { display: none; }
+  .navtoggle { border: 1px solid var(--line); background: none; color: var(--ink); border-radius: 6px; padding: 3px 9px; font-size: 15px; cursor: pointer; }
+  .navtoggle:hover { border-color: #3d4552; }
+  .qhead { display: flex; align-items: baseline; gap: 12px; }
+  h2 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+  .ctor { font-family: "JetBrains Mono", monospace; font-size: 13px; color: var(--muted); }
+  h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 22px 0 8px; font-weight: 600; }
+  pre { font-family: "JetBrains Mono", monospace; font-size: 13px; line-height: 1.45; background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; margin: 0; overflow-x: auto; }
+  pre.rule { background: var(--panel); }
+  .note { color: var(--muted); font-size: 14px; margin: 8px 0 0; }
+  code { font-family: "JetBrains Mono", monospace; font-size: 12.5px; background: var(--code-bg); padding: 1px 4px; border-radius: 3px; }
+  details summary { cursor: pointer; color: var(--muted); font-size: 14px; margin: 10px 0 6px; }
+  .editor { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #282c34; }
+  .editor .cm-editor { height: 440px; font-size: 13.5px; }
+  .editor .cm-scroller { font-family: "JetBrains Mono", monospace; }
+  .actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: 14px; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
+  .btn.primary:hover { background: #3a6fcc; }
+  .btn:hover { border-color: #3d4552; }
+  .btn.primary:disabled { opacity: .5; cursor: default; }
+  .btn.danger { color: var(--fail); }
+  .hint { font-size: 12.5px; color: var(--muted); }
+  .score { margin-top: 18px; padding: 14px 16px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); display: flex; align-items: center; gap: 16px; }
+  .score .big { font-size: 26px; font-weight: 600; font-family: "JetBrains Mono", monospace; }
+  .bar { flex: 1; height: 8px; background: var(--code-bg); border-radius: 4px; overflow: hidden; }
+  .bar > div { height: 100%; background: var(--pass); transition: width .3s; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+  td.m { font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+  tr.pass td.st { color: var(--pass); font-weight: 600; }
+  tr.fail { background: var(--fail-bg); }
+  tr.fail td.st { color: var(--fail); font-weight: 600; }
+  pre.out { background: #0f1115; color: #e6e6e6; max-height: 260px; overflow: auto; white-space: pre-wrap; }
+  pre.out.err { border-color: var(--fail); }
+  .scratch textarea { width: 100%; height: 90px; font-family: "JetBrains Mono", monospace; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; background: var(--code-bg); color: var(--ink); }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 10; }
+  .modal.show { display: flex; }
+  .modal .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 20px; max-width: 380px; }
+  .modal .box p { margin: 0 0 16px; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } nav { border-right: 0; border-bottom: 1px solid var(--line); } main { padding: 16px; } }
+  .pages { display: flex; gap: 6px; margin: 0 12px 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .pages a { flex: 1; text-align: center; padding: 6px 4px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 13px; }
+  .pages a:hover { color: var(--ink); }
+  .pages a.cur { color: var(--ink); background: #232a35; border-color: #3d4552; font-weight: 500; }
+  table.kw { width: auto; margin-top: 12px; }
+  table.kw td { padding: 4px 12px; }
+</style>
+</head>
+<body>
+<header>
+  <button class="navtoggle" id="navToggle" title="Toggle sidebar" aria-label="Toggle sidebar">☰</button>
+  <h1>CS 421 · Lexer Practice <span style="opacity:.6;font-weight:400">ocamllex, PicoML tokens</span></h1>
+  <span class="status" id="status"><span class="dot" id="dot"></span><span id="statusText">Loading OCaml toplevel…</span></span>
+  <span class="total" id="total"></span>
+</header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<div class="modal" id="modal"><div class="box"><p id="modalText"></p>
+  <div class="actions"><button class="btn danger" id="modalYes">Reset</button><button class="btn" id="modalNo">Cancel</button></div></div></div>
+
+<script src="cm.js"></script>
+<script src="mll.js"></script>
+<script src="lexer-questions.js"></script>
+<script>
+const QUESTIONS = LEX_QUESTIONS;
+const COMPLETIONS = [
+  ["lexbuf", "Lexing.lexbuf"], ["token", "Lexing.lexbuf -> token"], ["parse", "keyword"], ["rule", "keyword"],
+  ["eof", "keyword"], ["as", "keyword"], ["and", "keyword"],
+  ["float_of_string", "string -> float"], ["int_of_string", "string -> int"], ["char_of_int", "int -> char"],
+  ["String.make", "int -> char -> string"], ["Lexing.lexeme", "Lexing.lexbuf -> string"], ["failwith", "string -> 'a"],
+  ["raise", "exn -> 'a"], ["Failure", "string -> exn"],
+  ["numeric", "regexp"], ["lowercase", "regexp"], ["uppercase", "regexp"], ["alpha", "regexp"], ["alphanum", "regexp"],
+  ["ident_char", "regexp"], ["printable_char", "regexp"], ["whitespace", "regexp"],
+  ...["INT", "FLOAT", "STRING", "IDENT"].map(c => [c, "constructor"]),
+  ...LEX_QUESTIONS.find(q => q.id === "keywords").table.map(([s, c]) => [c, "token " + s]),
+];
+
+// ---------- storage (best-effort) ----------
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem("lex:" + k)); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem("lex:" + k, JSON.stringify(v)); } catch (e) {} },
+  del(k) { try { localStorage.removeItem("lex:" + k); } catch (e) {} },
+};
+const state = {};
+for (const q of QUESTIONS) {
+  state[q.id] = store.get("q:" + q.id) || { code: q.starter, results: null, score: null };
+}
+let current = (location.hash && QUESTIONS.find(q => "#" + q.id === location.hash)) ? location.hash.slice(1) : QUESTIONS[0].id;
+
+// ---------- OCaml worker ----------
+let worker, ready = false, pending = new Map(), nextId = 1, readyWaiters = [];
+function startWorker() {
+  ready = false;
+  setStatus(false, "Loading OCaml toplevel…");
+  worker = new Worker("lexer-worker.js");
+  worker.onmessage = (ev) => {
+    const m = ev.data;
+    if (m.type === "ready") {
+      ready = true; setStatus(true, "OCaml 4.14 ready");
+      readyWaiters.splice(0).forEach(f => f());
+    } else if (m.type === "result") {
+      const p = pending.get(m.id); pending.delete(m.id);
+      if (p) { clearTimeout(p.timer); p.resolve(m.out); }
+    }
+  };
+  worker.onerror = (e) => setStatus(false, "Worker error: " + (e.message || e));
+}
+function whenReady() { return ready ? Promise.resolve() : new Promise(r => readyWaiters.push(r)); }
+async function ocaml(code, print, timeoutMs = 10000) {
+  await whenReady();
+  return new Promise((resolve) => {
+    const id = nextId++;
+    const timer = setTimeout(() => {
+      pending.delete(id);
+      worker.terminate(); startWorker();
+      resolve("@@TIMEOUT");
+    }, timeoutMs);
+    pending.set(id, { resolve, timer });
+    worker.postMessage({ id, code, print });
+  });
+}
+function setStatus(ok, text) {
+  document.getElementById("dot").className = "dot" + (ok ? " ok" : "");
+  document.getElementById("statusText").textContent = text;
+}
+
+// ---------- rendering ----------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+function renderNav() {
+  const nav = document.getElementById("nav");
+  nav.innerHTML = `<div class="pages"><a href="index.html">Type inferencer</a><a href="lexer.html" class="cur">Lexer</a></div>`;
+  QUESTIONS.forEach((q, k) => {
+    const st = state[q.id];
+    const b = document.createElement("button");
+    if (q.id === current) b.className = "active";
+    let badge = "";
+    if (st.score) {
+      const cls = st.score.pass === st.score.total ? "full" : "part";
+      badge = `<span class="badge ${cls}">${st.score.pass}/${st.score.total}</span>`;
+    } else badge = `<span class="badge">–</span>`;
+    b.innerHTML = `<span class="num">${k + 1}</span><span>${esc(q.title)}</span>${badge}`;
+    b.onclick = () => { saveEditor(); current = q.id; try { history.replaceState(null, "", "#" + q.id); } catch (e) {} renderNav(); renderMain(); };
+    nav.appendChild(b);
+  });
+  const ra = document.createElement("button");
+  ra.className = "resetall"; ra.textContent = "Reset all questions";
+  ra.onclick = () => confirmBox("Reset every question to its starting code and clear all scores?", () => {
+    for (const q of QUESTIONS) { state[q.id] = { code: q.starter, results: null, score: null }; store.del("q:" + q.id); }
+    renderNav(); renderMain();
+  });
+  nav.appendChild(ra);
+  const done = QUESTIONS.filter(q => state[q.id].score && state[q.id].score.pass === state[q.id].score.total).length;
+  document.getElementById("total").textContent = `${done}/${QUESTIONS.length} parts fully correct`;
+}
+
+let view = null;
+function saveEditor() {
+  if (view) { state[current].code = view.state.doc.toString(); store.set("q:" + current, state[current]); }
+}
+
+function completionSource(ctx) {
+  const word = ctx.matchBefore(/[A-Za-z_][A-Za-z0-9_'.]*/);
+  if (!word || (word.from === word.to && !ctx.explicit)) return null;
+  return {
+    from: word.from,
+    options: COMPLETIONS.map(([label, detail]) => ({
+      label, detail,
+      type: detail === "keyword" ? "keyword" : /^[A-Z]/.test(label) && !label.includes(".") ? "enum"
+           : detail.includes("->") ? "function" : "variable",
+    })),
+    validFor: /^[A-Za-z0-9_'.]*$/,
+  };
+}
+
+function renderMain() {
+  const q = QUESTIONS.find(x => x.id === current);
+  const st = state[q.id];
+  const main = document.getElementById("main");
+  const table = q.table ? `<table class="kw"><tr><th>Token</th><th>Constructor</th><th>Token</th><th>Constructor</th><th>Token</th><th>Constructor</th></tr>${
+    Array.from({ length: Math.ceil(q.table.length / 3) }, (_, r) => "<tr>" + [0, 1, 2].map(c => {
+      const e = q.table[r + c * Math.ceil(q.table.length / 3)];
+      return e ? `<td class="m">${esc(e[0])}</td><td class="m">${e[1]}</td>` : "<td></td><td></td>";
+    }).join("") + "</tr>").join("")}</table>` : "";
+  main.innerHTML = `
+    <div class="qhead"><h2>${esc(q.title)}</h2><span class="ctor">${esc(q.tag)}</span></div>
+    <h3>Problem</h3>
+    <div>${q.spec}</div>
+    ${table}
+    <p class="note">Write only this part; it is tested with <code>get_all_tokens</code>. The rest of the PE3.5 lexer is added for you when grading${q.replaces === "keywords" ? " (identifiers, after your rules)" : q.replaces === "ident" ? " (keywords <code>* = ; try then not</code>, before your rules)" : " (keywords <code>* = ; try then not</code> before your rules, identifiers after them)"}.${q.note ? " " + q.note : ""}</p>
+    <details><summary>Sample execution</summary><pre>${esc(q.sample)}</pre></details>
+    <h3>Your code: token.mll</h3>
+    <div class="editor" id="editor"></div>
+    <div class="actions">
+      <button class="btn primary" id="grade">Save &amp; Grade</button>
+      <button class="btn danger" id="reset">Reset question</button>
+      <button class="btn" id="showSol">Show solution</button>
+      <span class="hint">Tab accepts autocomplete · Ctrl-Space to open it · Ctrl/Cmd-Enter to grade</span>
+    </div>
+    <pre id="sol" style="display:none;margin-top:12px">${esc(q.sol + (q.solExtra ? "\n" + q.solExtra : ""))}</pre>
+    <div id="results"></div>
+    <details class="scratch"><summary>Scratch toplevel: run your own expressions after your lexer is loaded</summary>
+      <textarea id="scratch" spellcheck="false">get_all_tokens ${esc(JSON.stringify(q.tests[0]))};;</textarea>
+      <div class="actions"><button class="btn" id="runScratch">Run (loads your lexer first)</button></div>
+      <pre class="out" id="scratchOut" style="display:none;margin-top:8px"></pre>
+    </details>`;
+
+  const C = window.CM;
+  view = new C.EditorView({
+    parent: document.getElementById("editor"),
+    state: C.EditorState.create({
+      doc: st.code,
+      extensions: [
+        C.Prec.highest(C.keymap.of([
+          { key: "Tab", run: C.acceptCompletion },
+          { key: "Enter", run: (v) => {
+              if (C.completionStatus(v.state) !== "active") return false;
+              C.closeCompletion(v); return C.insertNewlineAndIndent(v); } },
+        ])),
+        C.basicSetup, C.keymap.of([C.indentWithTab, { key: "Mod-Enter", run: () => { grade(); return true; } }]),
+        C.StreamLanguage.define(C.oCaml), C.oneDark,
+        C.autocompletion({ override: [completionSource, C.completeAnyWord], activateOnTyping: true }),
+        C.EditorView.updateListener.of(u => { if (u.docChanged) { clearTimeout(window.__sv); window.__sv = setTimeout(saveEditor, 400); } }),
+      ],
+    }),
+  });
+
+  document.getElementById("grade").onclick = grade;
+  document.getElementById("reset").onclick = () => confirmBox(`Reset “${q.title}” to the starting code and clear its score?`, () => {
+    state[q.id] = { code: q.starter, results: null, score: null }; store.del("q:" + q.id);
+    renderNav(); renderMain();
+  });
+  document.getElementById("showSol").onclick = (e) => {
+    const s = document.getElementById("sol");
+    const show = s.style.display === "none";
+    s.style.display = show ? "block" : "none";
+    e.target.textContent = show ? "Hide solution" : "Show solution";
+  };
+  document.getElementById("runScratch").onclick = runScratch;
+  renderResults();
+}
+
+function renderResults() {
+  const st = state[current];
+  const box = document.getElementById("results");
+  if (!st.results) { box.innerHTML = ""; return; }
+  const r = st.results;
+  let html = "";
+  if (r.score) {
+    const pct = r.score.total ? Math.round(100 * r.score.pass / r.score.total) : 0;
+    html += `<div class="score"><span class="big">${r.score.pass}/${r.score.total}</span>
+      <div class="bar"><div style="width:${pct}%"></div></div><span>${pct}%</span></div>`;
+  }
+  if (r.compile) html += `<h3>Compiler output</h3><pre class="out${r.compileErr ? " err" : ""}">${esc(r.compile)}</pre>`;
+  if (r.tests && r.tests.length) {
+    html += `<h3>Test cases</h3><table><tr><th></th><th>Call</th><th>Expected</th><th>Yours</th></tr>`;
+    for (const t of r.tests) {
+      html += `<tr class="${t.pass ? "pass" : "fail"}"><td class="st">${t.pass ? "✓" : "✗"}</td>
+        <td class="m">${esc(t.desc)}</td><td class="m">${esc(t.expected)}</td><td class="m">${esc(t.got)}</td></tr>`;
+    }
+    html += `</table><p class="note">“an exception” means any failure counts; the comment errors must use the exact <code>Failure</code> text.</p>`;
+  }
+  box.innerHTML = html;
+}
+
+const ocamlStr = s => '"' + [...s].map(ch => {
+  const c = ch.charCodeAt(0);
+  if (ch === '"' || ch === "\\") return "\\" + ch;
+  return c < 32 || c > 126 ? "\\" + String(c).padStart(3, "0") : ch;
+}).join("") + '"';
+
+// Loads the reference lexer as Sol and the student's as Student; returns compiler output.
+async function loadLexers(q, code) {
+  await ocaml(`module Sol = struct ${MLL.translate(q.solution, "solution.mll", q.inject).code} end;;
+module Student = struct
+  let get_all_tokens (_:string) : Common.token list = failwith "get_all_tokens is not defined (did your lexer compile?)"
+end;;`, false);
+  const t = MLL.translate(code, "student.mll", q.inject);
+  if (!t.ok) return "Error: " + t.error;
+  return ocaml(`module Student = struct ${t.code} end;;`, false);
+}
+
+let grading = false;
+async function grade() {
+  if (grading) return;
+  saveEditor();
+  const q = QUESTIONS.find(x => x.id === current);
+  const st = state[q.id];
+  const btn = document.getElementById("grade");
+  grading = true; if (btn) { btn.disabled = true; btn.textContent = "Grading…"; }
+  try {
+    const compile = await loadLexers(q, st.code);
+    const compileErr = /(^|\n)Error:|Uncaught exception|@@TIMEOUT/.test(compile);
+    let tests = [];
+    if (compile !== "@@TIMEOUT") {
+      const out = await ocaml(`Grader.run Sol.get_all_tokens Student.get_all_tokens [${q.tests.map(ocamlStr).join("; ")}];;`, false, 15000);
+      if (out === "@@TIMEOUT") {
+        tests = [{ pass: false, desc: "(all tests)", expected: "", got: "Timed out after 15s: infinite loop?" }];
+      } else {
+        for (const line of out.split("\n")) {
+          if (!line.startsWith("@@T\t")) continue;
+          const [, s, desc, expected, got] = line.split("\t");
+          tests.push({ pass: s === "PASS", desc, expected, got });
+        }
+        if (!tests.length) tests = [{ pass: false, desc: "(grader)", expected: "", got: out.trim().slice(0, 400) || "no output" }];
+      }
+    }
+    const nTotal = (compile === "@@TIMEOUT" || !tests.length) ? 1 : tests.length;
+    const score = { pass: compileErr ? 0 : tests.filter(t => t.pass).length, total: nTotal };
+    if (compileErr) tests = tests.map(t => ({ ...t, pass: false }));
+    const shownCompile = compile === "@@TIMEOUT" ? "Timed out while loading your code." : compile.trim();
+    st.results = { compile: shownCompile, compileErr, tests, score };
+    st.score = score;
+    store.set("q:" + q.id, st);
+  } finally {
+    grading = false;
+    if (current === q.id) { const b = document.getElementById("grade"); if (b) { b.disabled = false; b.textContent = "Save & Grade"; } renderResults(); }
+    renderNav();
+  }
+}
+
+async function runScratch() {
+  saveEditor();
+  const q = QUESTIONS.find(x => x.id === current);
+  const outEl = document.getElementById("scratchOut");
+  outEl.style.display = "block"; outEl.textContent = "Running…";
+  const compile = await loadLexers(q, state[q.id].code);
+  let src = document.getElementById("scratch").value.trim();
+  if (!src.endsWith(";;")) src += ";;";
+  const out = await ocaml("open Student;;\n" + src, true);
+  const errPart = /(^|\n)Error:/.test(compile) ? "--- your lexer ---\n" + compile.trim() + "\n--- scratch ---\n" : "";
+  outEl.textContent = errPart + (out === "@@TIMEOUT" ? "Timed out." : out);
+}
+
+let modalYes = null;
+function confirmBox(text, onYes) {
+  document.getElementById("modalText").textContent = text;
+  modalYes = onYes;
+  document.getElementById("modal").classList.add("show");
+}
+document.getElementById("modalYes").onclick = () => { document.getElementById("modal").classList.remove("show"); if (modalYes) modalYes(); };
+document.getElementById("modalNo").onclick = () => document.getElementById("modal").classList.remove("show");
+
+const wrapEl = document.querySelector(".wrap");
+wrapEl.classList.toggle("collapsed", !!store.get("navCollapsed"));
+document.getElementById("navToggle").onclick = () => store.set("navCollapsed", wrapEl.classList.toggle("collapsed"));
+
+startWorker();
+renderNav();
+renderMain();
+</script>
+</body>
+</html>
