@@ -178,17 +178,12 @@ and comment depth = parse
   | "\\\\b" { string_token (acc ^ "\\b") lexbuf }
   | "\\\\ " { string_token (acc ^ " ") lexbuf }
 
-  | '\\\\' numeric numeric numeric as s {
-      let n = int_of_string (String.sub s 1 3) in
-      if n <= 255 then
-        string_token (acc ^ String.make 1 (char_of_int n)) lexbuf
-      else
-        failwith "Invalid ASCII escape"
+  | '\\\\' (numeric numeric numeric as digits) {
+      let n = int_of_string digits in
+      string_token (acc ^ String.make 1 (char_of_int n)) lexbuf
     }
 
-  | '\\\\' '\\n' [' ' '\\t']* {
-      string_token acc lexbuf
-    }
+  | '\\\\' '\\n' [' ' '\\t']* { string_token acc lexbuf }
 
   | printable_char as c {
       string_token (acc ^ String.make 1 c) lexbuf
