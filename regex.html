@@ -47,6 +47,7 @@
   .editor { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #282c34; }
   .editor .cm-editor { height: 440px; font-size: 13.5px; }
   .editor .cm-scroller { font-family: "JetBrains Mono", monospace; }
+  .editor.sol .cm-editor { height: auto; }
   .actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
   .btn { font: inherit; font-size: 14px; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
   .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
@@ -175,6 +176,14 @@ function saveEditors() {
   store.set("q:" + current, st);
 }
 
+function solView(parent, doc, lang) {
+  const C = window.CM;
+  return new C.EditorView({ parent, state: C.EditorState.create({ doc, extensions: [
+    C.basicSetup, C.oneDark, C.EditorState.readOnly.of(true), C.EditorView.editable.of(false),
+    ...(lang ? [C.StreamLanguage.define(C.oCaml)] : []),
+  ] }) });
+}
+
 function editor(parent, doc) {
   const C = window.CM;
   return new C.EditorView({
@@ -213,8 +222,8 @@ function renderMain() {
     </div>
     <div id="sol" style="display:none;margin-top:12px">
       <h3>Solution</h3>
-      <pre>${esc(q.regex)}</pre>
-      <pre style="margin-top:8px">${esc(q.grammar)}</pre>
+      <div class="editor sol" id="solRegex"></div>
+      <div class="editor sol" id="solGrammar" style="margin-top:8px"></div>
       ${q.source === "Instructor" ? `<p class="note">These are answers that got 100% on PrairieLearn; any equivalent answer is also correct.</p>` : `<p class="note">Any equivalent answer is also correct.</p>`}
     </div>
     <div id="results"></div>
@@ -234,6 +243,8 @@ function renderMain() {
   document.getElementById("showSol").onclick = (e) => {
     const s = document.getElementById("sol"), show = s.style.display === "none";
     s.style.display = show ? "block" : "none";
+    const r = document.getElementById("solRegex");
+    if (show && !r.firstChild) { solView(r, q.regex); solView(document.getElementById("solGrammar"), q.grammar); }
     e.target.textContent = show ? "Hide solution" : "Show solution";
   };
   const tryIt = () => {

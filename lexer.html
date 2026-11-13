@@ -47,6 +47,7 @@
   .editor { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #282c34; }
   .editor .cm-editor { height: 440px; font-size: 13.5px; }
   .editor .cm-scroller { font-family: "JetBrains Mono", monospace; }
+  .editor.sol .cm-editor { height: auto; }
   .actions { display: flex; gap: 10px; margin-top: 12px; align-items: center; flex-wrap: wrap; }
   .btn { font: inherit; font-size: 14px; border-radius: 6px; padding: 8px 16px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
   .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 500; }
@@ -235,7 +236,7 @@ function renderMain() {
       <button class="btn" id="showSol">Show solution</button>
       <span class="hint">Tab accepts autocomplete · Ctrl-Space to open it · Ctrl/Cmd-Enter to grade</span>
     </div>
-    <pre id="sol" style="display:none;margin-top:12px">${esc(q.sol + (q.solExtra ? "\n" + q.solExtra : ""))}</pre>
+    <div class="editor sol" id="sol" style="display:none;margin-top:12px"></div>
     <div id="results"></div>
     <details class="scratch"><summary>Scratch toplevel: run your own expressions after your lexer is loaded</summary>
       <textarea id="scratch" spellcheck="false">get_all_tokens ${esc(JSON.stringify(q.tests[0]))};;</textarea>
@@ -272,10 +273,19 @@ function renderMain() {
     const s = document.getElementById("sol");
     const show = s.style.display === "none";
     s.style.display = show ? "block" : "none";
+    if (show && !s.firstChild) solView(s, q.sol + (q.solExtra ? "\n" + q.solExtra : ""), true);
     e.target.textContent = show ? "Hide solution" : "Show solution";
   };
   document.getElementById("runScratch").onclick = runScratch;
   renderResults();
+}
+
+function solView(parent, doc, lang) {
+  const C = window.CM;
+  return new C.EditorView({ parent, state: C.EditorState.create({ doc, extensions: [
+    C.basicSetup, C.oneDark, C.EditorState.readOnly.of(true), C.EditorView.editable.of(false),
+    ...(lang ? [C.StreamLanguage.define(C.oCaml)] : []),
+  ] }) });
 }
 
 function renderResults() {
