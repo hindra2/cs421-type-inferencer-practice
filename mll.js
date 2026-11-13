@@ -126,7 +126,11 @@
     }
     function alt() {
       let r = seq();
-      while (peek().t === "|" && startsAtom(toks[p + 1])) { p++; r = { t: "alt", a: r, b: seq() }; }
+      while (peek().t === "|" && startsAtom(toks[p + 1])) {
+        p++; const b = seq();
+        // ocamllex folds an alternation of char sets into one set, so `as` binds a char
+        r = r.t === "set" && b.t === "set" ? { t: "set", s: r.s.map((x, c) => x | b.s[c]) } : { t: "alt", a: r, b };
+      }
       return r;
     }
     function seq() {
