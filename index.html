@@ -217,7 +217,7 @@ function renderMain() {
       <button class="btn primary" id="grade">Save &amp; Grade</button>
       <button class="btn danger" id="reset">Reset question</button>
       <button class="btn" id="showSol">Show solution</button>
-      <span class="hint">Tab accepts autocomplete · Ctrl-Space to open it · Ctrl/Cmd-Enter to grade</span>
+      <span class="hint">Enter accepts autocomplete · Ctrl-Space to open it · Ctrl/Cmd-Enter to grade</span>
     </div>
     <div class="editor sol" id="sol" style="display:none;margin-top:12px"></div>
     <div id="results"></div>
@@ -233,12 +233,7 @@ function renderMain() {
     state: C.EditorState.create({
       doc: st.code,
       extensions: [
-        C.Prec.highest(C.keymap.of([
-          { key: "Tab", run: C.acceptCompletion },
-          { key: "Enter", run: (v) => {
-              if (C.completionStatus(v.state) !== "active") return false;
-              C.closeCompletion(v); return C.insertNewlineAndIndent(v); } },
-        ])),
+        C.Prec.highest(C.keymap.of([{ key: "Enter", run: C.acceptCompletion }])),
         C.basicSetup, C.keymap.of([C.indentWithTab, { key: "Mod-Enter", run: () => { grade(); return true; } }]),
         C.StreamLanguage.define(C.oCaml), C.oneDark,
         C.autocompletion({ override: [completionSource, C.completeAnyWord], activateOnTyping: true }),
