@@ -24,7 +24,7 @@
       prompt: `Consider the set of all strings over the alphabet ${set(["{", "}", "[", "]", ",", "4", "8"])} which represent a set of two-dimensional vectors. This set is represented in its canonical fashion, where the beginning of a set is denoted by a single open curly brace (<code>{</code>), followed by a series of vectors (explained later) which are comma delimited (<code>,</code>), with the end of the set denoted by a single close curly brace (<code>}</code>). As is usual with sets, there is no comma following the last element in the set. A vector is denoted by an open square bracket (<code>[</code>), then to be followed by one or more of the integers in the alphabet (as the first dimension), with the second dimension denoted by a comma (<code>,</code>), followed by a series of one or more of the integers in the alphabet, with the end of the vector denoted by the close square bracket (<code>]</code>).`,
       examples: `Some example strings are <code>{[48,4]}</code> and <code>{[48,4],[8,8]}</code>, but not <code>{[48,4],}</code> or <code>{[48,4][8,8]}</code>.`,
       accept: ["{[48,4]}", "{[48,4],[8,8]}", "{}"], reject: ["{[48,4],}", "{[48,4][8,8]}", "{[,4]}"],
-      regex: "{(EV[(4V8)(4V8)*,(4V8)(4V8)*](,[(4V8)(4V8)*,(4V8)(4V8)*])*)}",
+      regex: "{(E V ([(4V8)+,(4V8)+](,[(4V8)+,(4V8)+])*))}",
       grammar: "S ::= {F\nF ::= } | [G\nG ::= 4B | 8B\nB ::= 4B | 8B | ,C\nC ::= 4D | 8D\nD ::= 4D | 8D | ]E\nE ::= } | ,H\nH ::= [G\n\nStart Symbol = S",
     },
     {
